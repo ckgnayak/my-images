@@ -12,11 +12,21 @@
         max-width: 800px;
         width: 100%
       }
+
+      textarea {
+        width: 400px;
+        height: 80px
+      }
     </style>
   </head>
   <body>
     <h2>Issue</h2>
     <div id="image"></div>
+    <h3>Comments</h3>
+    <div id="comments"></div>
+    <textarea id="comment"></textarea>
+    <br><br>
+    <button onclick="send()">Post</button>
     <script>
 
       const params = new URLSearchParams(window.location.search)
@@ -26,6 +36,39 @@
 
       document.getElementById("image").innerHTML =
         `<img src="https://raw.githubusercontent.com/${repo}/main/${img}">`
+
+      const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
+
+      fetch(API + "?action=comments&img=" + img)
+        .then(r => r.json())
+        .then(data => {
+
+          let html = ""
+
+          data.forEach(c => {
+            html += `<p><b>${c[1]}</b>: ${c[2]}</p>`
+          })
+
+          document.getElementById("comments").innerHTML = html
+
+        })
+
+      function send() {
+
+        const text = document.getElementById("comment").value
+
+        fetch(API, {
+          method: "POST",
+          body: JSON.stringify({
+            image: img,
+            user: "anonymous",
+            comment: text
+          })
+        })
+
+        location.reload()
+
+      }
 
     </script>
   </body>
