@@ -23,6 +23,7 @@
     <h2>Issue</h2>
     <div id="image"></div>
     <h3>Status: <span id="status">loading...</span></h3>
+    <button onclick="toggleStatus()">Resolve / Reopen</button>
     <h3>Comments</h3>
     <div id="comments"></div>
     <textarea id="comment"></textarea>
@@ -76,6 +77,29 @@
         .then(s => {
           document.getElementById("status").innerText = s
         })
+
+      function toggleStatus() {
+
+        const current = document.getElementById("status").innerText
+
+        let newStatus = "OPEN"
+
+        if (current == "OPEN") {
+          newStatus = "RESOLVED"
+        }
+
+        fetch(API, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "updateStatus",
+            image: img,
+            status: newStatus
+          })
+        })
+
+        location.reload()
+
+      }
 
     </script>
   </body>
