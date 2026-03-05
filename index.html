@@ -61,14 +61,34 @@
               let card = document.createElement("div")
               card.className = "card"
 
+              const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
+
               card.innerHTML = `
-<div class="imgwrap">
-<span class="badge">OPEN</span>
-<a href="issue.html?img=${file.name}">
-<img src="${file.download_url}">
-</a>
-</div>
-`
+              <div class="imgwrap">
+              <span class="badge" id="status-${file.name}">...</span>
+              <a href="issue.html?img=${file.name}">
+              <img src="${file.download_url}">
+              </a>
+              </div>
+              `
+
+              gallery.appendChild(card)
+
+              fetch(API + "?action=status&img=" + file.name)
+                .then(r => r.text())
+                .then(status => {
+
+                  const badge = document.getElementById("status-" + file.name)
+
+                  badge.innerText = status
+
+                  if (status == "RESOLVED") {
+                    badge.style.background = "green"
+                  } else {
+                    badge.style.background = "red"
+                  }
+
+                })
 
               gallery.appendChild(card)
 
