@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Issue</title>
+    <style>
+      body {
+        font-family: Arial;
+        margin: 20px
+      }
+
+      img {
+        max-width: 800px;
+        width: 100%
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Issue</h2>
+    <div id="image"></div>
+    <script>
+
+      const params = new URLSearchParams(window.location.search)
+      const img = params.get("img")
+
+      const repo = "ckgnayak/my-images"
+
+      document.getElementById("image").innerHTML =
+        `<img src="https://raw.githubusercontent.com/${repo}/main/${img}">`
+
+    </script>
+  </body>
+</html>
