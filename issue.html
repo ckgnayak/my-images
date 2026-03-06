@@ -11,8 +11,14 @@
 
       .topbar {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 30px;
+      }
+
+      .issueTitle {
+        font-size: 18px;
+        font-weight: bold;
       }
 
       .userSection {
@@ -61,141 +67,105 @@
   </head>
   <body>
     <div class="topbar">
+      <div class="issueTitle" id="issueTitle">Loading...</div>
       <div class="userSection">
         <div id="loginBox">
-          <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
-          </div>
+          <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
           <div class="g_id_signin"></div>
         </div>
-        <img id="avatar" class="userAvatar" style="display:none">
+        <img id="avatar" class="userAvatar" style="display:none" />
         <span id="username"></span>
-        <button id="logoutBtn" onclick="logout()" style="display:none">
-          Sign out
-        </button>
+        <button id="logoutBtn" onclick="logout()" style="display:none">Sign out</button>
       </div>
     </div>
     <div id="image"></div>
-    <button id="deleteBtn" style="display:none" onclick="deleteIssue()">
-      Delete Issue
-    </button>
+    <button id="deleteBtn" style="display:none" onclick="deleteIssue()">Delete Issue</button>
     <h3>Comments</h3>
     <div id="comments"></div>
     <textarea id="comment"></textarea>
     <button onclick="send()">Post</button>
     <script>
-
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
-
       const ADMIN_EMAIL = "nayakckg@gmail.com"
 
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
       let userPicture = localStorage.getItem("userPicture")
 
-
       function handleCredentialResponse(response) {
-
-        const payload = JSON.parse(atob(response.credential.split('.')[1]))
-
+        const payload = JSON.parse(atob(response.credential.split(".")[1]))
         userEmail = payload.email
         userName = payload.name
         userPicture = payload.picture
-
         localStorage.setItem("userEmail", userEmail)
         localStorage.setItem("userName", userName)
         localStorage.setItem("userPicture", userPicture)
-
         location.reload()
-
       }
-
 
       if (userEmail) {
-
         document.getElementById("avatar").src = userPicture
         document.getElementById("avatar").style.display = "block"
-
         document.getElementById("username").innerText = userName
-
         document.getElementById("logoutBtn").style.display = "block"
-
         document.getElementById("loginBox").style.display = "none"
-
       }
-
 
       function logout() {
-
         localStorage.clear()
         location.reload()
-
       }
-
-
-      /* ADMIN DELETE */
 
       if (userEmail == ADMIN_EMAIL) {
         document.getElementById("deleteBtn").style.display = "block"
       }
 
-
       const params = new URLSearchParams(window.location.search)
       const img = params.get("img")
 
-
+      /* ── LOAD IMAGE + TITLE ── */
       fetch(API + "?action=images")
         .then(r => r.json())
         .then(rows => {
-
           rows.forEach(r => {
             if (r[0] == img) {
-
+              // r[4] = url, r[6] = title (column G)
+              const title = r[6] || r[0]
+              document.getElementById("issueTitle").innerText = title
+              document.title = title
               document.getElementById("image").innerHTML =
                 `<img class="issueImage" src="${r[4]}">`
-
             }
           })
-
         })
 
-
-      fetch(API + "?action=comments&img=" + img)
+      /* ── LOAD COMMENTS ── */
+      fetch(API + "?action=comments&img=" + encodeURIComponent(img))
         .then(r => r.json())
         .then(data => {
-
           let html = ""
-
           data.forEach(c => {
-
             html += `
-<div class="comment">
-
-<div class="commentUser">
-<img src="${c[3]}">
-<b>${c[1]}</b>
-</div>
-
-<div>${c[4]}</div>
-
-</div>
-`
-
+              <div class="comment">
+                <div class="commentUser">
+                  <img src="${c[3]}">
+                  <b>${c[1]}</b>
+                </div>
+                <div>${c[4]}</div>
+              </div>
+            `
           })
-
-          document.getElementById("comments").innerHTML = html
-
+          document.getElementById("comments").innerHTML = html || "<p>No comments yet.</p>"
         })
 
-
+      /* ── POST COMMENT ── */
       function send() {
-
         const text = document.getElementById("comment").value
+        if (!text.trim()) return
 
         fetch(API, {
           method: "POST",
-          headers: {
-            "Content-Type": "text/plain"
-          },
+          headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({
             action: "comment",
             image: img,
@@ -204,35 +174,26 @@
             avatar: userPicture,
             comment: text
           })
-        })
-
-        location.reload()
-
+        }).then(() => location.reload())
       }
 
-
+      /* ── DELETE ISSUE ── */
       function deleteIssue() {
+        if (!confirm("Are you sure you want to delete this issue?")) return
 
         fetch(API, {
           method: "POST",
-          headers: {
-            "Content-Type": "text/plain"
-          },
+          headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({
             action: "deleteIssue",
             image: img,
             email: userEmail
           })
+        }).then(() => {
+          alert("Issue deleted")
+          window.location.href = "index.html"
         })
-          .then(() => {
-
-            alert("Issue deleted")
-            window.location.href = "index.html"
-
-          })
-
       }
-
     </script>
   </body>
 </html>
