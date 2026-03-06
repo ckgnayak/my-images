@@ -9,14 +9,26 @@
         margin: 20px;
       }
 
-      #userBar {
+      .topbar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 30px;
+      }
+
+      .userSection {
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 20px;
       }
 
-      img {
+      .userAvatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .issueImage {
         max-width: 800px;
         width: 100%;
         border-radius: 6px;
@@ -24,7 +36,7 @@
 
       .comment {
         border-bottom: 1px solid #eee;
-        padding: 8px 0;
+        padding: 10px 0;
       }
 
       .commentUser {
@@ -45,53 +57,41 @@
         height: 80px;
         margin-top: 10px;
       }
-
-      button {
-        margin-top: 10px;
-      }
     </style>
   </head>
   <body>
-    <!-- USER BAR -->
-    <div id="userBar">
-      <img id="avatar" width="32" style="border-radius:50%">
-      <span id="username"></span>
-      <button onclick="logout()">Logout</button>
+    <div class="topbar">
+      <div class="userSection">
+        <div id="loginBox">
+          <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"></div>
+        </div>
+        <img id="avatar" class="userAvatar" style="display:none">
+        <span id="username"></span>
+        <button id="logoutBtn" onclick="logout()" style="display:none">
+          Sign out
+        </button>
+      </div>
     </div>
-    <!-- GOOGLE LOGIN -->
-    <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
-    </div>
-    <div class="g_id_signin"></div>
-    <h2>Issue</h2>
     <div id="image"></div>
-    <button id="deleteBtn" onclick="deleteIssue()" style="display:none">
+    <button id="deleteBtn" style="display:none" onclick="deleteIssue()">
       Delete Issue
     </button>
     <h3>Comments</h3>
     <div id="comments"></div>
-    <textarea id="comment" placeholder="Write comment"></textarea>
-    <br>
-    <button onclick="send()">Post Comment</button>
+    <textarea id="comment"></textarea>
+    <button onclick="send()">Post</button>
     <script>
-
-
-      /* CONFIG */
 
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
 
       const ADMIN_EMAIL = "nayakckg@gmail.com"
 
-
-
-      /* USER DATA */
-
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
       let userPicture = localStorage.getItem("userPicture")
 
-
-
-      /* GOOGLE LOGIN */
 
       function handleCredentialResponse(response) {
 
@@ -110,64 +110,54 @@
       }
 
 
-
-      /* USER BAR */
-
       if (userEmail) {
 
         document.getElementById("avatar").src = userPicture
+        document.getElementById("avatar").style.display = "block"
+
         document.getElementById("username").innerText = userName
+
+        document.getElementById("logoutBtn").style.display = "block"
+
+        document.getElementById("loginBox").style.display = "none"
 
       }
 
 
-
-      /* LOGOUT */
-
       function logout() {
 
         localStorage.clear()
-
         location.reload()
 
       }
 
 
-
-      /* ADMIN DELETE BUTTON */
+      /* ADMIN DELETE */
 
       if (userEmail == ADMIN_EMAIL) {
         document.getElementById("deleteBtn").style.display = "block"
       }
 
 
-
-      /* GET IMAGE */
-
       const params = new URLSearchParams(window.location.search)
-
       const img = params.get("img")
+
 
       fetch(API + "?action=images")
         .then(r => r.json())
         .then(rows => {
 
           rows.forEach(r => {
-
             if (r[0] == img) {
 
               document.getElementById("image").innerHTML =
-                `<img src="${r[4]}">`
+                `<img class="issueImage" src="${r[4]}">`
 
             }
-
           })
 
         })
 
-
-
-      /* LOAD COMMENTS */
 
       fetch(API + "?action=comments&img=" + img)
         .then(r => r.json())
@@ -197,15 +187,7 @@
         })
 
 
-
-      /* POST COMMENT */
-
       function send() {
-
-        if (!userEmail) {
-          alert("Please login first")
-          return
-        }
 
         const text = document.getElementById("comment").value
 
@@ -229,9 +211,6 @@
       }
 
 
-
-      /* DELETE ISSUE */
-
       function deleteIssue() {
 
         fetch(API, {
@@ -248,13 +227,11 @@
           .then(() => {
 
             alert("Issue deleted")
-
             window.location.href = "index.html"
 
           })
 
       }
-
 
     </script>
   </body>
