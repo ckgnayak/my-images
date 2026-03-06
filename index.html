@@ -102,8 +102,6 @@
 
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
 
-      const ADMIN_EMAIL = "nayakckg@gmail.com"
-
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
       let userPicture = localStorage.getItem("userPicture")
@@ -128,8 +126,6 @@
 
 
 
-      /* USER BAR */
-
       if (userEmail) {
 
         document.getElementById("avatar").src = userPicture
@@ -141,11 +137,11 @@
 
         document.getElementById("loginBox").style.display = "none"
 
+        document.getElementById("uploadSection").style.display = "block"
+
       }
 
 
-
-      /* LOGOUT */
 
       function logout() {
 
@@ -156,27 +152,14 @@
 
 
 
-      /* ADMIN UPLOAD */
-
-      if (userEmail == ADMIN_EMAIL) {
-        document.getElementById("uploadSection").style.display = "block"
-      }
-
-
-
-      /* UPLOAD FUNCTION WITH DEBUG */
+      /* UPLOAD FUNCTION */
 
       function upload() {
-
-        if (!userEmail) {
-          alert("Please login first")
-          return
-        }
 
         const file = document.getElementById("upload").files[0]
 
         if (!file) {
-          alert("Select image first")
+          alert("Select image")
           return
         }
 
@@ -195,31 +178,20 @@
             email: userEmail
           }
 
-          /* DEBUG */
-
-          console.log("UPLOAD PAYLOAD:")
-          console.log(payload)
-
           fetch(API, {
             method: "POST",
+            mode: "no-cors",
             headers: {
               "Content-Type": "text/plain"
             },
             body: JSON.stringify(payload)
           })
-            .then(r => r.text())
-            .then(res => {
 
-              console.log("SERVER RESPONSE:", res)
+          document.getElementById("uploadStatus").innerText = "Upload sent"
 
-              document.getElementById("uploadStatus").innerText = "Upload complete"
-
-              location.reload()
-
-            })
-            .catch(err => {
-              console.error("UPLOAD ERROR:", err)
-            })
+          setTimeout(() => {
+            location.reload()
+          }, 1500)
 
         }
 
