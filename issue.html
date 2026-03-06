@@ -2,13 +2,14 @@
 <html>
   <head>
     <title>Issue</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
       body {
         font-family: Arial;
         margin: 20px
       }
 
-      img {
+      img.main {
         max-width: 800px;
         width: 100%
       }
@@ -17,6 +18,28 @@
         width: 400px;
         height: 80px
       }
+
+      .comment {
+        display: flex;
+        margin-bottom: 14px
+      }
+
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        margin-right: 10px
+      }
+
+      .name {
+        font-weight: bold
+      }
+
+      .time {
+        color: #777;
+        font-size: 12px;
+        margin-left: 6px
+      }
     </style>
   </head>
   <body>
@@ -24,6 +47,10 @@
     <div id="image"></div>
     <h3>Status: <span id="status">loading...</span></h3>
     <button onclick="toggleStatus()">Resolve / Reopen</button>
+    <br><br>
+    <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"></div>
     <h3>Comments</h3>
     <div id="comments"></div>
     <textarea id="comment"></textarea>
@@ -36,47 +63,39 @@
 
       const repo = "ckgnayak/my-images"
 
-      document.getElementById("image").innerHTML =
-        `<img src="https://raw.githubusercontent.com/${repo}/main/${img}">`
-
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
 
-      fetch(API + "?action=comments&img=" + img)
-        .then(r => r.json())
-        .then(data => {
+      let userEmail = localStorage.getItem("userEmail")
+      let userName = localStorage.getItem("userName")
+      let userPicture = localStorage.getItem("userPicture")
 
-          let html = ""
+      document.getElementById("image").innerHTML =
+        `<img class="main" src="https://raw.githubusercontent.com/${repo}/main/${img}">`
 
-          data.forEach(c => {
-            html += `<p><b>${c[1]}</b>: ${c[2]}</p>`
-          })
 
-          document.getElementById("comments").innerHTML = html
+      function handleCredentialResponse(response) {
 
-        })
+        const payload = JSON.parse(atob(response.credential.split('.')[1]))
 
-      function send() {
+        userEmail = payload.email
+        userName = payload.name
+        userPicture = payload.picture
 
-        const text = document.getElementById("comment").value
-
-        fetch(API, {
-          method: "POST",
-          body: JSON.stringify({
-            image: img,
-            user: "",
-            comment: text
-          })
-        })
-
-        location.reload()
+        localStorage.setItem("userEmail", userEmail)
+        localStorage.setItem("userName", userName)
+        localStorage.setItem("userPicture", userPicture)
 
       }
+
+
 
       fetch(API + "?action=status&img=" + img)
         .then(r => r.text())
         .then(s => {
           document.getElementById("status").innerText = s
         })
+
+
 
       function toggleStatus() {
 
@@ -94,6 +113,69 @@
             action: "updateStatus",
             image: img,
             status: newStatus
+          })
+        })
+
+        location.reload()
+
+      }
+
+
+
+      fetch(API + "?action=comments&img=" + img)
+        .then(r => r.json())
+        .then(data => {
+
+          let html = ""
+
+          data.forEach(c => {
+
+            html += `
+<div class="comment">
+
+<img class="avatar" src="${c[3]}">
+
+<div>
+
+<span class="name">${c[1]}</span>
+<span class="time">${new Date(c[5]).toLocaleString()}</span>
+
+<br>
+
+${c[4]}
+
+</div>
+
+</div>
+`
+
+          })
+
+          document.getElementById("comments").innerHTML = html
+
+        })
+
+
+
+      function send() {
+
+        if (!userEmail) {
+          alert("Please sign in with Google first")
+          return
+        }
+
+        const text = document.getElementById("comment").value
+
+        if (text.trim() == "") return
+
+        fetch(API, {
+          method: "POST",
+          body: JSON.stringify({
+            image: img,
+            user: userName,
+            email: userEmail,
+            avatar: userPicture,
+            comment: text
           })
         })
 
