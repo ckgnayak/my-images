@@ -9,6 +9,13 @@
         margin: 20px;
       }
 
+      #userBar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -53,40 +60,39 @@
     </style>
   </head>
   <body>
-    <div id="userBar" style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <!-- USER BAR -->
+    <div id="userBar">
       <img id="avatar" width="32" style="border-radius:50%">
       <span id="username"></span>
       <button onclick="logout()">Logout</button>
     </div>
-    <h2>Issue Tracker</h2>
     <!-- GOOGLE LOGIN -->
     <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
     </div>
     <div class="g_id_signin"></div>
-    <!-- UPLOAD SECTION -->
-    <h3>Report Issue</h3>
-    <input type="file" id="upload" accept="image/*">
-    <button onclick="upload()">Submit Issue</button>
-    <p id="uploadStatus"></p>
-    <!-- GALLERY -->
+    <!-- ADMIN UPLOAD -->
+    <div id="uploadSection" style="display:none">
+      <h3>Upload Issue</h3>
+      <input type="file" id="upload" accept="image/*">
+      <button onclick="upload()">Upload</button>
+      <p id="uploadStatus"></p>
+    </div>
     <h3>Issues</h3>
     <div class="grid" id="gallery"></div>
     <script>
 
 
-      /* -----------------------
-      CONFIG
-      ----------------------- */
+      /* CONFIG */
 
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
+
+      const ADMIN_EMAIL = "nayakckg@gmail.com"
 
       const gallery = document.getElementById("gallery")
 
 
 
-      /* -----------------------
-      USER INFO
-      ----------------------- */
+      /* USER DATA */
 
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
@@ -94,9 +100,7 @@
 
 
 
-      /* -----------------------
-      GOOGLE LOGIN
-      ----------------------- */
+      /* GOOGLE LOGIN */
 
       function handleCredentialResponse(response) {
 
@@ -116,21 +120,45 @@
 
 
 
-      /* -----------------------
-      UPLOAD REQUEST
-      ----------------------- */
+      /* LOAD USER BAR */
+
+      if (userEmail) {
+
+        document.getElementById("avatar").src = userPicture
+        document.getElementById("username").innerText = userName
+
+      }
+
+
+
+      /* LOGOUT */
+
+      function logout() {
+
+        localStorage.clear()
+
+        location.reload()
+
+      }
+
+
+
+      /* SHOW ADMIN UPLOAD */
+
+      if (userEmail == ADMIN_EMAIL) {
+        document.getElementById("uploadSection").style.display = "block"
+      }
+
+
+
+      /* ADMIN UPLOAD */
 
       function upload() {
-
-        if (!userEmail) {
-          alert("Please login first")
-          return
-        }
 
         const file = document.getElementById("upload").files[0]
 
         if (!file) {
-          alert("Select an image first")
+          alert("Select image")
           return
         }
 
@@ -143,10 +171,10 @@
           fetch(API, {
             method: "POST",
             headers: {
-              "Content-Type": "text/plain;charset=utf-8"
+              "Content-Type": "text/plain"
             },
             body: JSON.stringify({
-              action: "uploadRequest",
+              action: "upload",
               name: file.name,
               type: file.type,
               image: reader.result,
@@ -157,12 +185,10 @@
             .then(r => r.text())
             .then(res => {
 
-              document.getElementById("uploadStatus").innerText =
-                "Upload submitted for admin approval"
+              document.getElementById("uploadStatus").innerText = "Upload complete"
 
-            })
-            .catch(err => {
-              document.getElementById("uploadStatus").innerText = "Upload failed"
+              location.reload()
+
             })
 
         }
@@ -173,9 +199,7 @@
 
 
 
-      /* -----------------------
-      LOAD GALLERY
-      ----------------------- */
+      /* LOAD GALLERY */
 
       fetch(API + "?action=images")
         .then(r => r.json())
@@ -191,6 +215,7 @@
             card.className = "card"
 
             card.innerHTML = `
+
 <div class="imgwrap">
 
 <span class="badge" id="status-${name}">
@@ -206,13 +231,12 @@ ${status}
 </a>
 
 </div>
+
 `
 
             gallery.appendChild(card)
 
 
-
-            /* STATUS COLOR */
 
             const badge = document.getElementById("status-" + name)
 
@@ -223,8 +247,6 @@ ${status}
             }
 
 
-
-            /* COMMENT COUNT */
 
             fetch(API + "?action=count&img=" + name)
               .then(r => r.text())
