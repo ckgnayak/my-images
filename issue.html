@@ -6,77 +6,92 @@
     <style>
       body {
         font-family: Arial;
-        margin: 20px
+        margin: 20px;
       }
 
-      img.main {
+      #userBar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      img {
         max-width: 800px;
-        width: 100%
-      }
-
-      textarea {
-        width: 400px;
-        height: 80px
+        width: 100%;
+        border-radius: 6px;
       }
 
       .comment {
+        border-bottom: 1px solid #eee;
+        padding: 8px 0;
+      }
+
+      .commentUser {
         display: flex;
-        margin-bottom: 14px
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
       }
 
-      .avatar {
-        width: 36px;
-        height: 36px;
+      .commentUser img {
+        width: 24px;
+        height: 24px;
         border-radius: 50%;
-        margin-right: 10px
       }
 
-      .name {
-        font-weight: bold
+      textarea {
+        width: 100%;
+        height: 80px;
+        margin-top: 10px;
       }
 
-      .time {
-        color: #777;
-        font-size: 12px;
-        margin-left: 6px
+      button {
+        margin-top: 10px;
       }
     </style>
   </head>
   <body>
-    <div id="userBar" style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <!-- USER BAR -->
+    <div id="userBar">
       <img id="avatar" width="32" style="border-radius:50%">
       <span id="username"></span>
       <button onclick="logout()">Logout</button>
     </div>
-    <h2>Issue</h2>
-    <div id="image"></div>
-    <h3>Status: <span id="status">loading...</span></h3>
-    <button onclick="toggleStatus()">Resolve / Reopen</button>
-    <br><br>
+    <!-- GOOGLE LOGIN -->
     <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
     </div>
     <div class="g_id_signin"></div>
+    <h2>Issue</h2>
+    <div id="image"></div>
+    <button id="deleteBtn" onclick="deleteIssue()" style="display:none">
+      Delete Issue
+    </button>
     <h3>Comments</h3>
     <div id="comments"></div>
-    <textarea id="comment"></textarea>
-    <br><br>
-    <button onclick="send()">Post</button>
+    <textarea id="comment" placeholder="Write comment"></textarea>
+    <br>
+    <button onclick="send()">Post Comment</button>
     <script>
 
-      const params = new URLSearchParams(window.location.search)
-      const img = params.get("img")
 
-      const repo = "ckgnayak/my-images"
+      /* CONFIG */
 
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
+
+      const ADMIN_EMAIL = "nayakckg@gmail.com"
+
+
+
+      /* USER DATA */
 
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
       let userPicture = localStorage.getItem("userPicture")
 
-      document.getElementById("image").innerHTML =
-        `<img class="main" src="https://raw.githubusercontent.com/${repo}/main/${img}">`
 
+
+      /* GOOGLE LOGIN */
 
       function handleCredentialResponse(response) {
 
@@ -90,42 +105,69 @@
         localStorage.setItem("userName", userName)
         localStorage.setItem("userPicture", userPicture)
 
+        location.reload()
+
       }
 
 
 
-      fetch(API + "?action=status&img=" + img)
-        .then(r => r.text())
-        .then(s => {
-          document.getElementById("status").innerText = s
-        })
+      /* USER BAR */
+
+      if (userEmail) {
+
+        document.getElementById("avatar").src = userPicture
+        document.getElementById("username").innerText = userName
+
+      }
 
 
 
-      function toggleStatus() {
+      /* LOGOUT */
 
-        const current = document.getElementById("status").innerText
+      function logout() {
 
-        let newStatus = "OPEN"
-
-        if (current == "OPEN") {
-          newStatus = "RESOLVED"
-        }
-
-        fetch(API, {
-          method: "POST",
-          body: JSON.stringify({
-            action: "updateStatus",
-            image: img,
-            status: newStatus
-          })
-        })
+        localStorage.clear()
 
         location.reload()
 
       }
 
 
+
+      /* ADMIN DELETE BUTTON */
+
+      if (userEmail == ADMIN_EMAIL) {
+        document.getElementById("deleteBtn").style.display = "block"
+      }
+
+
+
+      /* GET IMAGE */
+
+      const params = new URLSearchParams(window.location.search)
+
+      const img = params.get("img")
+
+      fetch(API + "?action=images")
+        .then(r => r.json())
+        .then(rows => {
+
+          rows.forEach(r => {
+
+            if (r[0] == img) {
+
+              document.getElementById("image").innerHTML =
+                `<img src="${r[4]}">`
+
+            }
+
+          })
+
+        })
+
+
+
+      /* LOAD COMMENTS */
 
       fetch(API + "?action=comments&img=" + img)
         .then(r => r.json())
@@ -138,18 +180,12 @@
             html += `
 <div class="comment">
 
-<img class="avatar" src="${c[3]}">
-
-<div>
-
-<span class="name">${c[1]}</span>
-<span class="time">${new Date(c[5]).toLocaleString()}</span>
-
-<br>
-
-${c[4]}
-
+<div class="commentUser">
+<img src="${c[3]}">
+<b>${c[1]}</b>
 </div>
+
+<div>${c[4]}</div>
 
 </div>
 `
@@ -162,20 +198,24 @@ ${c[4]}
 
 
 
+      /* POST COMMENT */
+
       function send() {
 
         if (!userEmail) {
-          alert("Please sign in with Google first")
+          alert("Please login first")
           return
         }
 
         const text = document.getElementById("comment").value
 
-        if (text.trim() == "") return
-
         fetch(API, {
           method: "POST",
+          headers: {
+            "Content-Type": "text/plain"
+          },
           body: JSON.stringify({
+            action: "comment",
             image: img,
             user: userName,
             email: userEmail,
@@ -187,6 +227,34 @@ ${c[4]}
         location.reload()
 
       }
+
+
+
+      /* DELETE ISSUE */
+
+      function deleteIssue() {
+
+        fetch(API, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain"
+          },
+          body: JSON.stringify({
+            action: "deleteIssue",
+            image: img,
+            email: userEmail
+          })
+        })
+          .then(() => {
+
+            alert("Issue deleted")
+
+            window.location.href = "index.html"
+
+          })
+
+      }
+
 
     </script>
   </body>
