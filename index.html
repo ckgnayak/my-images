@@ -102,6 +102,8 @@
 
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
 
+      const gallery = document.getElementById("gallery")
+
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
       let userPicture = localStorage.getItem("userPicture")
@@ -152,7 +154,7 @@
 
 
 
-      /* UPLOAD FUNCTION */
+      /* UPLOAD */
 
       function upload() {
 
@@ -213,6 +215,8 @@
             const status = r[1]
             const url = r[4]
 
+            if (!name || !url) return
+
             let card = document.createElement("div")
             card.className = "card"
 
@@ -235,9 +239,9 @@
             gallery.appendChild(card)
 
             fetch(API + "?action=count&img=" + name)
-              .then(r => r.text())
-              .then(c => {
-                document.getElementById("count-" + name).innerText = "💬 " + c
+              .then(r => r.json())
+              .then(data => {
+                document.getElementById("count-" + name).innerText = "💬 " + data.count
               })
 
           })
