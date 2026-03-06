@@ -145,7 +145,10 @@
               image: reader.result,
               user: userName,
               email: userEmail
-            })
+            }),
+            headers: {
+              "Content-Type": "text/plain"
+            }
           })
             .then(r => r.text())
             .then(res => {
