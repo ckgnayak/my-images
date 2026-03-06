@@ -69,20 +69,19 @@
     <script>
 
 
-      /* -------------------------------
+      /* -----------------------
       CONFIG
-      ------------------------------- */
+      ----------------------- */
 
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
-
 
       const gallery = document.getElementById("gallery")
 
 
 
-      /* -------------------------------
+      /* -----------------------
       USER INFO
-      ------------------------------- */
+      ----------------------- */
 
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
@@ -90,9 +89,9 @@
 
 
 
-      /* -------------------------------
+      /* -----------------------
       GOOGLE LOGIN
-      ------------------------------- */
+      ----------------------- */
 
       function handleCredentialResponse(response) {
 
@@ -112,9 +111,9 @@
 
 
 
-      /* -------------------------------
+      /* -----------------------
       UPLOAD REQUEST
-      ------------------------------- */
+      ----------------------- */
 
       function upload() {
 
@@ -138,6 +137,9 @@
 
           fetch(API, {
             method: "POST",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8"
+            },
             body: JSON.stringify({
               action: "uploadRequest",
               name: file.name,
@@ -145,10 +147,7 @@
               image: reader.result,
               user: userName,
               email: userEmail
-            }),
-            headers: {
-              "Content-Type": "text/plain"
-            }
+            })
           })
             .then(r => r.text())
             .then(res => {
@@ -156,6 +155,9 @@
               document.getElementById("uploadStatus").innerText =
                 "Upload submitted for admin approval"
 
+            })
+            .catch(err => {
+              document.getElementById("uploadStatus").innerText = "Upload failed"
             })
 
         }
@@ -166,9 +168,9 @@
 
 
 
-      /* -------------------------------
+      /* -----------------------
       LOAD GALLERY
-      ------------------------------- */
+      ----------------------- */
 
       fetch(API + "?action=images")
         .then(r => r.json())
@@ -222,9 +224,7 @@ ${status}
             fetch(API + "?action=count&img=" + name)
               .then(r => r.text())
               .then(count => {
-
                 document.getElementById("count-" + name).innerText = "💬 " + count
-
               })
 
           })
