@@ -46,6 +46,16 @@
       .issueImage {
         width: 100%;
         border-radius: 4px;
+        display: block;
+      }
+
+      .issueTitle {
+        margin: 6px 0 0;
+        font-size: 13px;
+        font-weight: bold;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .badge {
@@ -73,6 +83,16 @@
       .imgwrap {
         position: relative;
       }
+
+      #uploadSection input[type="text"] {
+        display: block;
+        margin-bottom: 8px;
+        padding: 6px 10px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 300px;
+      }
     </style>
   </head>
   <body>
@@ -80,174 +100,138 @@
       <h2>Issue Tracker</h2>
       <div class="userSection">
         <div id="loginBox">
-          <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
-          </div>
+          <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
           <div class="g_id_signin"></div>
         </div>
-        <img id="avatar" class="userAvatar" style="display:none">
+        <img id="avatar" class="userAvatar" style="display:none" />
         <span id="username"></span>
-        <button id="logoutBtn" onclick="logout()" style="display:none">
-          Sign out
-        </button>
+        <button id="logoutBtn" onclick="logout()" style="display:none">Sign out</button>
       </div>
     </div>
     <div id="uploadSection" style="display:none">
       <h3>Upload Issue</h3>
-      <input type="file" id="upload">
+      <input type="text" id="uploadTitle" placeholder="Issue title..." />
+      <input type="file" id="upload" accept="image/*" />
       <button onclick="upload()">Upload</button>
       <p id="uploadStatus"></p>
     </div>
     <div class="grid" id="gallery"></div>
     <script>
-
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
-
-      const gallery = document.getElementById("gallery")
 
       let userEmail = localStorage.getItem("userEmail")
       let userName = localStorage.getItem("userName")
       let userPicture = localStorage.getItem("userPicture")
 
-
-
       function handleCredentialResponse(response) {
-
-        const payload = JSON.parse(atob(response.credential.split('.')[1]))
-
+        const payload = JSON.parse(atob(response.credential.split(".")[1]))
         userEmail = payload.email
         userName = payload.name
         userPicture = payload.picture
-
         localStorage.setItem("userEmail", userEmail)
         localStorage.setItem("userName", userName)
         localStorage.setItem("userPicture", userPicture)
-
         location.reload()
-
       }
-
-
 
       if (userEmail) {
-
         document.getElementById("avatar").src = userPicture
         document.getElementById("avatar").style.display = "block"
-
         document.getElementById("username").innerText = userName
-
         document.getElementById("logoutBtn").style.display = "block"
-
         document.getElementById("loginBox").style.display = "none"
-
         document.getElementById("uploadSection").style.display = "block"
-
       }
-
-
 
       function logout() {
-
         localStorage.clear()
         location.reload()
-
       }
 
-
-
-      /* UPLOAD */
-
-      function upload() {
-
+      /* ── UPLOAD ── */
+      async function upload() {
         const file = document.getElementById("upload").files[0]
-
         if (!file) {
-          alert("Select image")
+          alert("Select an image first")
           return
         }
 
-        document.getElementById("uploadStatus").innerText = "Uploading..."
+        const title = document.getElementById("uploadTitle").value.trim() || file.name
+        const statusEl = document.getElementById("uploadStatus")
+        statusEl.innerText = "Uploading..."
 
-        const reader = new FileReader()
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result)
+          reader.onerror = () => reject(reader.error)
+          reader.readAsDataURL(file)
+        })
 
-        reader.onload = function () {
+        const payload = {
+          action: "upload",
+          name: file.name,
+          type: file.type,
+          image: base64,
+          user: userName,
+          email: userEmail,
+          title: title
+        }
 
-          const payload = {
-            action: "upload",
-            name: file.name,
-            type: file.type,
-            image: reader.result,
-            user: userName,
-            email: userEmail
-          }
-
-          fetch(API, {
+        try {
+          const res = await fetch(API, {
             method: "POST",
-            mode: "no-cors",
-            headers: {
-              "Content-Type": "text/plain"
-            },
+            headers: { "Content-Type": "text/plain" },
             body: JSON.stringify(payload)
           })
 
-          document.getElementById("uploadStatus").innerText = "Upload sent"
+          const json = await res.json()
 
-          setTimeout(() => {
-            location.reload()
-          }, 1500)
-
+          if (json.status === "ok") {
+            statusEl.innerText = "✅ Uploaded!"
+            setTimeout(() => location.reload(), 1500)
+          } else {
+            statusEl.innerText = "❌ Error: " + (json.error || JSON.stringify(json))
+          }
+        } catch (err) {
+          console.error("Upload error:", err)
+          statusEl.innerText = "❌ Upload failed: " + err.message
         }
-
-        reader.readAsDataURL(file)
-
       }
 
-
-
-      /* LOAD GALLERY */
-
+      /* ── GALLERY ── */
       fetch(API + "?action=images")
         .then(r => r.json())
         .then(rows => {
-
           rows.slice(1).forEach(r => {
-
             const name = r[0]
             const status = r[1]
             const url = r[4]
+            const title = r[6] || name  // column G — custom title
 
-            if (!name || !url) return
-
-            let card = document.createElement("div")
+            const card = document.createElement("div")
             card.className = "card"
-
             card.innerHTML = `
+              <div class="imgwrap">
+                <span class="badge">${status}</span>
+                <span class="commentBadge" id="count-${name}">💬 0</span>
+                <a href="issue.html?img=${encodeURIComponent(name)}">
+                  <img class="issueImage" src="${url}" onerror="this.style.opacity=0.3">
+                </a>
+              </div>
+              <p class="issueTitle">${title}</p>
+            `
+            document.getElementById("gallery").appendChild(card)
 
-<div class="imgwrap">
-
-<span class="badge">${status}</span>
-
-<span class="commentBadge" id="count-${name}">💬 0</span>
-
-<a href="issue.html?img=${name}">
-<img class="issueImage" src="${url}">
-</a>
-
-</div>
-
-`
-
-            gallery.appendChild(card)
-
-            fetch(API + "?action=count&img=" + name)
+            fetch(API + "?action=count&img=" + encodeURIComponent(name))
               .then(r => r.json())
               .then(data => {
-                document.getElementById("count-" + name).innerText = "💬 " + data.count
+                const el = document.getElementById("count-" + name)
+                if (el) el.innerText = "💬 " + (data.count !== undefined ? data.count : 0)
               })
-
+              .catch(() => { })
           })
-
         })
-
+        .catch(err => console.error("Gallery load error:", err))
     </script>
   </body>
 </html>
