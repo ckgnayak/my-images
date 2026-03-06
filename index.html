@@ -53,6 +53,11 @@
     </style>
   </head>
   <body>
+    <div id="userBar" style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <img id="avatar" width="32" style="border-radius:50%">
+      <span id="username"></span>
+      <button onclick="logout()">Logout</button>
+    </div>
     <h2>Issue Tracker</h2>
     <!-- GOOGLE LOGIN -->
     <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">

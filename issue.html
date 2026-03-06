@@ -43,6 +43,11 @@
     </style>
   </head>
   <body>
+    <div id="userBar" style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <img id="avatar" width="32" style="border-radius:50%">
+      <span id="username"></span>
+      <button onclick="logout()">Logout</button>
+    </div>
     <h2>Issue</h2>
     <div id="image"></div>
     <h3>Status: <span id="status">loading...</span></h3>
