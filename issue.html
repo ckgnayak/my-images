@@ -40,6 +40,52 @@
         border-radius: 6px;
       }
 
+      .statusRow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 12px 0 20px;
+      }
+
+      .badge {
+        display: inline-block;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 4px 10px;
+        border-radius: 3px;
+      }
+
+      .badge.OPEN {
+        background: red;
+      }
+
+      .badge.IN-PROGRESS {
+        background: orange;
+      }
+
+      .badge.RESOLVED {
+        background: green;
+      }
+
+      select#statusSelect {
+        padding: 4px 8px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        cursor: pointer;
+      }
+
+      button#statusSaveBtn {
+        padding: 4px 12px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: none;
+        background: #333;
+        color: white;
+        cursor: pointer;
+      }
+
       .comment {
         border-bottom: 1px solid #eee;
         padding: 10px 0;
@@ -77,6 +123,17 @@
         <span id="username"></span>
         <button id="logoutBtn" onclick="logout()" style="display:none">Sign out</button>
       </div>
+    </div>
+    <!-- Status row: badge + dropdown + save button -->
+    <div class="statusRow">
+      <span class="badge" id="statusBadge">...</span>
+      <select id="statusSelect" style="display:none">
+        <option value="OPEN">OPEN</option>
+        <option value="IN PROGRESS">IN PROGRESS</option>
+        <option value="RESOLVED">RESOLVED</option>
+      </select>
+      <button id="statusSaveBtn" style="display:none" onclick="updateStatus()">Save</button>
+      <span id="statusMsg" style="font-size:13px;color:green"></span>
     </div>
     <div id="image"></div>
     <button id="deleteBtn" style="display:none" onclick="deleteIssue()">Delete Issue</button>
@@ -118,26 +175,73 @@
 
       if (userEmail == ADMIN_EMAIL) {
         document.getElementById("deleteBtn").style.display = "block"
+        document.getElementById("statusSelect").style.display = "inline-block"
+        document.getElementById("statusSaveBtn").style.display = "inline-block"
       }
 
       const params = new URLSearchParams(window.location.search)
       const img = params.get("img")
 
-      /* ── LOAD IMAGE + TITLE ── */
+      /* ── LOAD IMAGE + TITLE + STATUS ── */
       fetch(API + "?action=images")
         .then(r => r.json())
         .then(rows => {
           rows.forEach(r => {
             if (r[0] == img) {
-              // r[4] = url, r[6] = title (column G)
               const title = r[6] || r[0]
+              const status = r[1] || "OPEN"
+
               document.getElementById("issueTitle").innerText = title
               document.title = title
+
+              // Set badge
+              const badge = document.getElementById("statusBadge")
+              badge.innerText = status
+              badge.className = "badge " + status.replace(" ", "-")
+
+              // Pre-select dropdown
+              document.getElementById("statusSelect").value = status
+
               document.getElementById("image").innerHTML =
                 `<img class="issueImage" src="${r[4]}">`
             }
           })
         })
+
+      /* ── UPDATE STATUS ── */
+      async function updateStatus() {
+        const newStatus = document.getElementById("statusSelect").value
+        const msgEl = document.getElementById("statusMsg")
+        msgEl.innerText = "Saving..."
+
+        try {
+          const res = await fetch(API, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+              action: "updateStatus",
+              image: img,
+              status: newStatus,
+              email: userEmail
+            })
+          })
+
+          const json = await res.json()
+
+          if (json.status === "ok") {
+            // Update badge instantly
+            const badge = document.getElementById("statusBadge")
+            badge.innerText = newStatus
+            badge.className = "badge " + newStatus.replace(" ", "-")
+            msgEl.innerText = "✅ Updated"
+            setTimeout(() => msgEl.innerText = "", 2000)
+          } else {
+            msgEl.innerText = "❌ " + (json.error || "Failed")
+          }
+        } catch (err) {
+          msgEl.innerText = "❌ " + err.message
+        }
+      }
 
       /* ── LOAD COMMENTS ── */
       fetch(API + "?action=comments&img=" + encodeURIComponent(img))
