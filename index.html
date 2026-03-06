@@ -62,11 +62,23 @@
         position: absolute;
         top: 8px;
         left: 8px;
-        background: red;
         color: white;
         font-size: 12px;
+        font-weight: bold;
         padding: 4px 6px;
         border-radius: 3px;
+      }
+
+      .badge.OPEN {
+        background: red;
+      }
+
+      .badge.IN-PROGRESS {
+        background: orange;
+      }
+
+      .badge.RESOLVED {
+        background: green;
       }
 
       .commentBadge {
@@ -212,7 +224,7 @@
             card.className = "card"
             card.innerHTML = `
               <div class="imgwrap">
-                <span class="badge">${status}</span>
+                <span class="badge ${status.replace(' ', '-')}">${status}</span>
                 <span class="commentBadge" id="count-${name}">💬 0</span>
                 <a href="issue.html?img=${encodeURIComponent(name)}">
                   <img class="issueImage" src="${url}" onerror="this.style.opacity=0.3">
