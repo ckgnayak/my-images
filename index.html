@@ -9,7 +9,6 @@
         margin: 20px;
       }
 
-      /* TOP BAR */
       .topbar {
         display: flex;
         align-items: center;
@@ -30,7 +29,6 @@
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        object-fit: cover;
       }
 
       .grid {
@@ -45,10 +43,6 @@
         border-radius: 6px;
       }
 
-      .imgwrap {
-        position: relative;
-      }
-
       .issueImage {
         width: 100%;
         border-radius: 4px;
@@ -58,6 +52,7 @@
         position: absolute;
         top: 8px;
         left: 8px;
+        background: red;
         color: white;
         font-size: 12px;
         padding: 4px 6px;
@@ -73,6 +68,10 @@
         font-size: 12px;
         padding: 4px 6px;
         border-radius: 3px;
+      }
+
+      .imgwrap {
+        position: relative;
       }
     </style>
   </head>
@@ -110,6 +109,7 @@
       let userPicture = localStorage.getItem("userPicture")
 
 
+
       function handleCredentialResponse(response) {
 
         const payload = JSON.parse(atob(response.credential.split('.')[1]))
@@ -127,7 +127,6 @@
       }
 
 
-      /* USER BAR */
 
       if (userEmail) {
 
@@ -143,7 +142,6 @@
       }
 
 
-      /* LOGOUT */
 
       function logout() {
 
@@ -153,15 +151,23 @@
       }
 
 
-      /* ADMIN UPLOAD */
 
       if (userEmail == ADMIN_EMAIL) {
         document.getElementById("uploadSection").style.display = "block"
       }
 
+
+
       function upload() {
 
         const file = document.getElementById("upload").files[0]
+
+        if (!file) {
+          alert("Select image first")
+          return
+        }
+
+        document.getElementById("uploadStatus").innerText = "Uploading..."
 
         const reader = new FileReader()
 
@@ -181,7 +187,20 @@
               email: userEmail
             })
           })
-            .then(() => location.reload())
+            .then(r => r.text())
+            .then(res => {
+
+              console.log(res)
+
+              document.getElementById("uploadStatus").innerText = "Upload complete"
+
+              location.reload()
+
+            })
+            .catch(err => {
+              console.error(err)
+              alert("Upload failed")
+            })
 
         }
 
@@ -197,7 +216,7 @@
         .then(r => r.json())
         .then(rows => {
 
-          rows.forEach(r => {
+          rows.slice(1).forEach(r => {
 
             const name = r[0]
             const status = r[1]
