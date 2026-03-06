@@ -1,52 +1,45 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Issue Gallery</title>
+    <title>Issue Tracker</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-      /* Basic page styling */
       body {
         font-family: Arial;
         margin: 20px;
       }
 
-      /* Grid layout for images */
       .grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
         gap: 16px;
       }
 
-      /* Card container */
       .card {
         border: 1px solid #ddd;
         padding: 8px;
         border-radius: 6px;
       }
 
-      /* Wrapper so badges can be positioned on image */
       .imgwrap {
         position: relative;
       }
 
-      /* Image styling */
       img {
         width: 100%;
         border-radius: 4px;
       }
 
-      /* Status badge (OPEN / RESOLVED) */
       .badge {
         position: absolute;
         top: 8px;
         left: 8px;
-        background: red;
         color: white;
         font-size: 12px;
         padding: 4px 6px;
         border-radius: 3px;
       }
 
-      /* Comment count badge */
       .commentBadge {
         position: absolute;
         bottom: 8px;
@@ -55,136 +48,183 @@
         color: white;
         font-size: 12px;
         padding: 4px 6px;
-        border-radius: 4px;
+        border-radius: 3px;
       }
     </style>
   </head>
   <body>
-    <h2>Issue Gallery</h2>
-    <!-- Container where images will be inserted -->
+    <h2>Issue Tracker</h2>
+    <!-- GOOGLE LOGIN -->
+    <div id="g_id_onload" data-client_id="608770921952-hkt587ujrjp4bg98eba2hhc7rumjjnid.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"></div>
+    <!-- UPLOAD SECTION -->
+    <h3>Report Issue</h3>
+    <input type="file" id="upload" accept="image/*">
+    <button onclick="upload()">Submit Issue</button>
+    <p id="uploadStatus"></p>
+    <!-- GALLERY -->
+    <h3>Issues</h3>
     <div class="grid" id="gallery"></div>
     <script>
 
 
-      /* ------------------------------------------
-      CONFIGURATION
-      ------------------------------------------ */
-
-
-      /* GitHub repo where images are stored */
-
-      const repo = "ckgnayak/my-images"
-
-
-      /* Apps Script API endpoint */
+      /* -------------------------------
+      CONFIG
+      ------------------------------- */
 
       const API = "https://script.google.com/macros/s/AKfycbwKG2hl62rZU3Su57ZIThVYPggDObNotUt7EEC5j06yo9UZsjQsBx_WH6y3LoIl09v1/exec"
 
-
-      /* Gallery container */
 
       const gallery = document.getElementById("gallery")
 
 
 
-      /* ------------------------------------------
-      LOAD IMAGES FROM GITHUB
-      ------------------------------------------ */
+      /* -------------------------------
+      USER INFO
+      ------------------------------- */
 
-
-      /* Fetch repo contents via GitHub API */
-
-      fetch(`https://api.github.com/repos/${repo}/contents`)
-        .then(res => res.json())
-        .then(files => {
-
-
-          files.forEach(file => {
-
-
-            /* Only process image files */
-
-            if (file.name.match(/\.(jpg|jpeg|png|gif)$/i)) {
+      let userEmail = localStorage.getItem("userEmail")
+      let userName = localStorage.getItem("userName")
+      let userPicture = localStorage.getItem("userPicture")
 
 
 
-              /* Create card container */
+      /* -------------------------------
+      GOOGLE LOGIN
+      ------------------------------- */
 
-              let card = document.createElement("div")
-              card.className = "card"
+      function handleCredentialResponse(response) {
+
+        const payload = JSON.parse(atob(response.credential.split('.')[1]))
+
+        userEmail = payload.email
+        userName = payload.name
+        userPicture = payload.picture
+
+        localStorage.setItem("userEmail", userEmail)
+        localStorage.setItem("userName", userName)
+        localStorage.setItem("userPicture", userPicture)
+
+        location.reload()
+
+      }
 
 
 
-              /* Insert image and badges */
+      /* -------------------------------
+      UPLOAD REQUEST
+      ------------------------------- */
 
-              card.innerHTML = `
+      function upload() {
+
+        if (!userEmail) {
+          alert("Please login first")
+          return
+        }
+
+        const file = document.getElementById("upload").files[0]
+
+        if (!file) {
+          alert("Select an image first")
+          return
+        }
+
+        document.getElementById("uploadStatus").innerText = "Uploading..."
+
+        const reader = new FileReader()
+
+        reader.onload = function () {
+
+          fetch(API, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "uploadRequest",
+              name: file.name,
+              type: file.type,
+              image: reader.result,
+              user: userName,
+              email: userEmail
+            })
+          })
+            .then(r => r.text())
+            .then(res => {
+
+              document.getElementById("uploadStatus").innerText =
+                "Upload submitted for admin approval"
+
+            })
+
+        }
+
+        reader.readAsDataURL(file)
+
+      }
+
+
+
+      /* -------------------------------
+      LOAD GALLERY
+      ------------------------------- */
+
+      fetch(API + "?action=images")
+        .then(r => r.json())
+        .then(rows => {
+
+          rows.forEach(r => {
+
+            const name = r[0]
+            const status = r[1]
+            const url = r[4]
+
+            let card = document.createElement("div")
+            card.className = "card"
+
+            card.innerHTML = `
 <div class="imgwrap">
 
-<span class="badge" id="status-${file.name}">
-...
+<span class="badge" id="status-${name}">
+${status}
 </span>
 
-<span class="commentBadge" id="count-${file.name}">
+<span class="commentBadge" id="count-${name}">
 💬 0
 </span>
 
-<a href="issue.html?img=${file.name}">
-<img src="${file.download_url}">
+<a href="issue.html?img=${name}">
+<img src="${url}">
 </a>
 
 </div>
 `
 
-
-              /* Add card to gallery */
-
-              gallery.appendChild(card)
+            gallery.appendChild(card)
 
 
 
-              /* ------------------------------------------
-              FETCH ISSUE STATUS
-              ------------------------------------------ */
+            /* STATUS COLOR */
 
-              fetch(API + "?action=status&img=" + file.name)
-                .then(r => r.text())
-                .then(status => {
+            const badge = document.getElementById("status-" + name)
 
-                  const badge = document.getElementById("status-" + file.name)
-
-                  badge.innerText = status
-
-                  /* Color badge */
-
-                  if (status == "RESOLVED") {
-                    badge.style.background = "green"
-                  } else {
-                    badge.style.background = "red"
-                  }
-
-                })
-
-
-
-              /* ------------------------------------------
-              FETCH COMMENT COUNT
-              ------------------------------------------ */
-
-              fetch(API + "?action=count&img=" + file.name)
-                .then(r => r.text())
-                .then(count => {
-
-                  document.getElementById("count-" + file.name).innerText = "💬 " + count
-
-                })
-
-
-
+            if (status == "RESOLVED") {
+              badge.style.background = "green"
+            } else {
+              badge.style.background = "red"
             }
 
 
-          })
 
+            /* COMMENT COUNT */
+
+            fetch(API + "?action=count&img=" + name)
+              .then(r => r.text())
+              .then(count => {
+
+                document.getElementById("count-" + name).innerText = "💬 " + count
+
+              })
+
+          })
 
         })
 
